@@ -15,6 +15,7 @@ type AzureClient struct {
 
 func (c *AzureClient) InitializeClient() {
 	if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
+		settings.InfoLogger.Println("Using AAD Graph Client")
 		c.InitializeAzureADGraphClient()
 	}
 	//TODO add MS graph

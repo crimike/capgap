@@ -1,6 +1,8 @@
 package settings
 
-var Config = make(map[string]string)
+var (
+	Config = make(map[string]string)
+)
 
 const (
 	ACCESSTOKEN       string = "AccessToken"
@@ -14,4 +16,6 @@ const (
 	LOADCAP           string = "load"
 	SAVECAP           string = "save"
 	TENANT            string = "tenant"
+	VERBOSE           string = "verbose"
+	VERBOSE_ON        string = "ON"
 )

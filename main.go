@@ -16,19 +16,21 @@ import (
 
 func PrintUsage() {
 	fmt.Println("CapGap is meant to discover Azure Conditional Access Policy bypasses for certain combinations.")
+	fmt.Println()
 	flag.PrintDefaults()
 }
 
 func ParseCommandLine() error {
 	var (
-		accessToken  string
-		userId       string
-		appId        string
-		aadGraph     bool
-		msGraph      bool
-		saveToFile   string
-		loadFromFile string
-		tenantId     string
+		accessToken    string
+		userId         string
+		appId          string
+		aadGraph       bool
+		msGraph        bool
+		saveToFile     string
+		loadFromFile   string
+		tenantId       string
+		verboseLogging bool
 	)
 	flag.StringVar(&accessToken, "accessToken", "", "JWT access token for the specified scope")
 	flag.StringVar(&userId, "userId", "", "User ObjectId for which to check gaps")
@@ -38,6 +40,7 @@ func ParseCommandLine() error {
 	flag.StringVar(&saveToFile, "save", "", "If enabled, saves the conditional access policies to file(JSON format) - useful during testing")
 	flag.StringVar(&loadFromFile, "load", "", "If present, conditional access policies will be loaded from the file given(JSON format)")
 	flag.StringVar(&tenantId, "tenant", "", "Specify tenant ID ")
+	flag.BoolVar(&verboseLogging, "v", false, "Verbose logging")
 	flag.Usage = PrintUsage
 	flag.Parse()
 	//check params
@@ -78,13 +81,16 @@ func ParseCommandLine() error {
 		settings.Config[settings.CAPFILE] = loadFromFile
 		settings.Config[settings.CAPFILE_DIRECTION] = settings.LOADCAP
 	}
+	if verboseLogging {
+		settings.Config[settings.VERBOSE] = settings.VERBOSE_ON
+	}
+	settings.InitLogging()
 
 	return nil
 }
 
 func main() {
 
-	log.SetFlags(log.Lshortfile)
 	err := ParseCommandLine()
 	if err != nil {
 		flag.Usage()
@@ -93,7 +99,7 @@ func main() {
 
 	caps, err := parsers.ParseConditionalAccessPolicyList()
 	if err != nil {
-		log.Panicln(err)
+		settings.ErrorLogger.Fatalln("Could not retrieve conditional access policies: " + err.Error())
 	}
 	capgap.FindGapsPerUserAndApp(caps, settings.Config[settings.USERID], settings.Config[settings.APPID])
 

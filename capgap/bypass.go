@@ -4,8 +4,8 @@ import (
 	"capgap/enums"
 	"capgap/models"
 	"capgap/parsers"
+	"capgap/settings"
 	"fmt"
-	"log"
 	"slices"
 )
 
@@ -128,7 +128,7 @@ func FindGapsPerUserAndApp(caps []models.ConditionalAccessPolicy, userId string,
 
 	locations, err := parsers.ParseLocations()
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err.Error())
 		return
 	}
 
@@ -137,7 +137,11 @@ func FindGapsPerUserAndApp(caps []models.ConditionalAccessPolicy, userId string,
 		bypasses = append(bypasses, b)
 	}
 
+	settings.InfoLogger.Println("Found " + fmt.Sprint(len(bypasses)) + " bypasses for user " + userId + " to app " + appId)
+
 	commonBypasses := GetCommonBypasses(bypasses)
+
+	settings.InfoLogger.Println("Out of those, there are " + fmt.Sprint(len(commonBypasses)) + " common bypasses")
 
 	//TODO: generate report or pretty print bypasses
 	commonBypasses = GroupBypassesByClientId(commonBypasses)

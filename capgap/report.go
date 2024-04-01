@@ -4,7 +4,7 @@ import (
 	"capgap/enums"
 	"capgap/models"
 	"capgap/parsers"
-	"log"
+	"capgap/settings"
 	"slices"
 )
 
@@ -73,7 +73,7 @@ func GroupBypassesByLocation(bypassList []models.Bypass) []models.Bypass {
 
 	allLocations, err := parsers.ParseLocations()
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err)
 		return response
 	}
 

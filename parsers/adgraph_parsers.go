@@ -6,6 +6,7 @@ import (
 	"capgap/enums"
 	"capgap/models"
 	"capgap/models/adgraph"
+	"capgap/settings"
 	"compress/flate"
 	"encoding/base64"
 	"encoding/json"
@@ -20,7 +21,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 	var response []models.Location
 	namedLocations, err := c.GetNamedLocationsAdGraph()
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err)
 		return response, err
 	}
 
@@ -34,7 +35,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 				)
 				err := json.Unmarshal([]byte(policyDetail), &polDetail)
 				if err != nil {
-					log.Println(err)
+					settings.ErrorLogger.Println(err)
 					return response, err
 				}
 				loc.DisplayName = polDetail.KnownNetworkPolicies.NetworkName
@@ -58,7 +59,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 
 			err := json.Unmarshal([]byte(namedLocation.PolicyDetail[0]), &polDetail)
 			if err != nil {
-				log.Println(err)
+				settings.ErrorLogger.Println(err)
 				return response, err
 			}
 
@@ -67,7 +68,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 			loc.PolicyId = namedLocation.PolicyId
 			b64decoded, err := base64.StdEncoding.DecodeString(polDetail.CompressedCidrIpRanges)
 			if err != nil {
-				log.Println(err)
+				settings.ErrorLogger.Println(err)
 				return response, err
 			}
 			b := bytes.NewReader(b64decoded)
@@ -76,7 +77,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 			defer z.Close()
 			p, err := ioutil.ReadAll(z)
 			if err != nil {
-				log.Println(err)
+				settings.ErrorLogger.Println(err)
 				return response, err
 			}
 			loc.IpRange = append(loc.IpRange, string(p))
@@ -102,7 +103,7 @@ func ParseGroupADGraph(c *client.AzureClient, groupId string) (models.DynamicGro
 	)
 	group_ag, members, err := c.GetGroupAndMembersAdGraph(groupId)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err)
 		return (models.DynamicGroup{}), members, err
 	}
 
@@ -123,7 +124,7 @@ func ParseConditionalAccessPolicyListADGraph(c *client.AzureClient) ([]models.Co
 
 	adGraphCaps, err := c.GetConditionalAccessPoliciesAdGraph()
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err)
 		return response, nil
 	}
 
@@ -148,7 +149,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 
 	err := json.Unmarshal(policyDetail, &polDetail)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err)
 		return cap, err
 	}
 	cap.DisplayName = displayName
@@ -189,7 +190,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 			for _, groupId := range userGrouping.Groups {
 				dgroup, members, err := ParseGroupADGraph(c, groupId)
 				if err != nil {
-					log.Println(err)
+					settings.ErrorLogger.Println(err)
 					return cap, err
 				}
 				cap.IncludedUsers = append(cap.IncludedUsers, members...)
@@ -200,7 +201,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 			for _, roleId := range userGrouping.Roles {
 				roleMembers, err := c.GetRoleMembersAdGraph(roleId)
 				if err != nil {
-					log.Println(err)
+					settings.ErrorLogger.Println(err)
 					return cap, err
 				}
 				cap.IncludedUsers = append(cap.IncludedUsers, roleMembers...)
@@ -217,7 +218,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 		for _, groupId := range userGrouping.Groups {
 			dgroup, members, err := ParseGroupADGraph(c, groupId)
 			if err != nil {
-				log.Println(err)
+				settings.ErrorLogger.Println(err)
 				return cap, err
 			}
 			cap.ExcludedUsers = append(cap.ExcludedUsers, members...)
@@ -228,7 +229,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 		for _, roleId := range userGrouping.Roles {
 			roleMembers, err := c.GetRoleMembersAdGraph(roleId)
 			if err != nil {
-				log.Println(err)
+				settings.ErrorLogger.Println(err)
 				return cap, err
 			}
 			cap.ExcludedUsers = append(cap.ExcludedUsers, roleMembers...)
@@ -238,7 +239,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 
 	locations, err := ParseLocationsADGraph(c)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println(err)
 		return cap, err
 	}
 

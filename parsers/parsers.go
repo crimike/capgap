@@ -5,8 +5,8 @@ import (
 	"capgap/models"
 	"capgap/settings"
 	"encoding/json"
-	"log"
 	"os"
+	"strconv"
 )
 
 func ParseLocations() ([]models.Location, error) {
@@ -20,7 +20,7 @@ func ParseLocations() ([]models.Location, error) {
 	if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
 		locations, err = ParseLocationsADGraph(&c)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return locations, err
 		}
 	} // else msgraph
@@ -37,21 +37,23 @@ func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error
 	c.InitializeClient()
 
 	if settings.Config[settings.CAPFILE_DIRECTION] == settings.LOADCAP {
+		settings.InfoLogger.Println("Reading CAPS from " + settings.Config[settings.CAPFILE])
 		data, err := os.ReadFile(settings.Config[settings.CAPFILE])
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return caps, err
 		}
 		err = json.Unmarshal(data, &caps)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return caps, err
 		}
+		settings.InfoLogger.Println("A total of " + strconv.Itoa(len(caps)) + " conditional access policies were retrieved")
 	} else {
 		if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
 			caps, err := ParseConditionalAccessPolicyListADGraph(&c)
 			if err != nil {
-				log.Println(err)
+				settings.ErrorLogger.Println(err)
 				return caps, err
 			}
 		} // else MSGRAPH

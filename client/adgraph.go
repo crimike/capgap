@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -35,15 +34,17 @@ func (c *AzureClient) GetNamedLocationsAdGraph() ([]adgraph.LocationPolicy, erro
 	var response []adgraph.LocationPolicy
 
 	if len(cache.Locations) > 0 {
+		settings.InfoLogger.Println("Using cache to retrieve locations")
 		return cache.Locations, nil
 	}
 
 	apiUrl := c.MainUrl + c.Tenant + "/policies?$top=999&$filter=policyType%20eq%206&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
+		settings.InfoLogger.Println("URL for location retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not create GET request for locations: " + err.Error())
 			return response, err
 		}
 
@@ -52,26 +53,27 @@ func (c *AzureClient) GetNamedLocationsAdGraph() ([]adgraph.LocationPolicy, erro
 
 		resp, err := c.HttpClient.Do(req)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not issue GET request for locations: " + err.Error())
 			return response, err
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not read response body: " + err.Error())
 			return response, err
 		}
 
 		if resp.StatusCode != 200 {
-			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
+			settings.InfoLogger.Println("Response received: " + string(body))
+			return response, errors.New("Return code is: " + fmt.Sprint(resp.StatusCode))
 		}
 
 		var lpr adgraph.LocationPolicyResponse
 
 		err = json.Unmarshal(body, &lpr)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Error parsing the JSON received into Locations: " + err.Error())
 			return response, err
 		}
 
@@ -85,6 +87,7 @@ func (c *AzureClient) GetNamedLocationsAdGraph() ([]adgraph.LocationPolicy, erro
 		}
 	}
 
+	settings.InfoLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " locations")
 	cache.Locations = append(cache.Locations, response...)
 
 	return response, nil
@@ -98,9 +101,10 @@ func (c *AzureClient) GetConditionalAccessPoliciesAdGraph() ([]adgraph.Condition
 	apiUrl := c.MainUrl + c.Tenant + "/policies?$top=999&$filter=policyType%20eq%2018&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
+		settings.InfoLogger.Println("URL for CAP retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not create GET request for CAPs: " + err.Error())
 			return response, err
 		}
 
@@ -109,18 +113,19 @@ func (c *AzureClient) GetConditionalAccessPoliciesAdGraph() ([]adgraph.Condition
 
 		resp, err := c.HttpClient.Do(req)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not issue GET request for CAPs: " + err.Error())
 			return response, err
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not read response body of CAPs: " + err.Error())
 			return response, err
 		}
 
 		if resp.StatusCode != 200 {
+			settings.InfoLogger.Println("Response received: " + string(body))
 			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
@@ -128,7 +133,7 @@ func (c *AzureClient) GetConditionalAccessPoliciesAdGraph() ([]adgraph.Condition
 
 		err = json.Unmarshal(body, &caps)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Error parsing the JSON received into CAPs: " + err.Error())
 			return response, err
 		}
 
@@ -153,9 +158,10 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 	apiUrl := c.MainUrl + c.Tenant + "/applications?$top=999&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
+		settings.InfoLogger.Println("URL for app retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not create GET request for apps: " + err.Error())
 			return response, err
 		}
 
@@ -164,25 +170,26 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 
 		resp, err := c.HttpClient.Do(req)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not issue GET request for apps: " + err.Error())
 			return response, err
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Could not read response body of apps: " + err.Error())
 			return response, err
 		}
 
 		if resp.StatusCode != 200 {
+			settings.InfoLogger.Println("Response received: " + string(body))
 			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
 		var apps adgraph.ApplicationResponse
 		err = json.Unmarshal(body, &apps)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println("Error parsing the JSON received into CAPs: " + err.Error())
 			return response, err
 		}
 
@@ -210,9 +217,11 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 
 	apiUrl := c.MainUrl + c.Tenant + "/groups/" + groupId + "?api-version=" + c.ApiVersion
 
+	settings.InfoLogger.Println("Retrieving group information using URL: " + apiUrl)
+
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println("Could not create GET request for the group: " + err.Error())
 		return group, members, err
 	}
 
@@ -221,24 +230,25 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println("Could not issue GET request for the group: " + err.Error())
 		return group, members, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println("Could not read response body for the group: " + err.Error())
 		return group, members, err
 	}
 
 	if resp.StatusCode != 200 {
+		settings.InfoLogger.Println("Response received: " + string(body))
 		return group, members, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 	}
 
 	err = json.Unmarshal(body, &group)
 	if err != nil {
-		log.Println(err)
+		settings.ErrorLogger.Println("Error parsing the JSON received into a group: " + err.Error())
 		return group, members, err
 	}
 
@@ -247,6 +257,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 	// check cache first
 	val, ok := cache.GroupMembers[groupId]
 	if ok {
+		settings.InfoLogger.Println("Retrieving group members from the cache")
 		return group, val, nil
 	}
 
@@ -256,7 +267,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 
 		req, err = http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return group, members, err
 		}
 
@@ -265,25 +276,26 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 
 		resp, err = c.HttpClient.Do(req)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return group, members, err
 		}
 		defer resp.Body.Close()
 
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return group, members, err
 		}
 
 		if resp.StatusCode != 200 {
+			settings.InfoLogger.Println("Response received: " + string(body))
 			return group, members, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
 		var userResponse adgraph.UserResponse
 		err = json.Unmarshal(body, &userResponse)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return group, members, err
 		}
 
@@ -322,7 +334,7 @@ func (c *AzureClient) GetRoleMembersAdGraph(roleId string) ([]string, error) {
 	for apiUrl != "" {
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return roleMembers, err
 		}
 
@@ -331,14 +343,14 @@ func (c *AzureClient) GetRoleMembersAdGraph(roleId string) ([]string, error) {
 
 		resp, err := c.HttpClient.Do(req)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return roleMembers, err
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return roleMembers, err
 		}
 
@@ -349,7 +361,7 @@ func (c *AzureClient) GetRoleMembersAdGraph(roleId string) ([]string, error) {
 		var roleAssignmentResponse adgraph.RoleAssignmentResponse
 		err = json.Unmarshal(body, &roleAssignmentResponse)
 		if err != nil {
-			log.Println(err)
+			settings.ErrorLogger.Println(err)
 			return roleMembers, err
 		}
 
