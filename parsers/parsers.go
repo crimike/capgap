@@ -13,11 +13,12 @@ func ParseLocations() ([]models.Location, error) {
 	var (
 		c         client.AzureClient
 		locations []models.Location
+		err       error
 	)
 	c.InitializeClient()
 
 	if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
-		locations, err := ParseLocationsADGraph(&c)
+		locations, err = ParseLocationsADGraph(&c)
 		if err != nil {
 			log.Println(err)
 			return locations, err
@@ -36,7 +37,11 @@ func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error
 	c.InitializeClient()
 
 	if settings.Config[settings.CAPFILE_DIRECTION] == settings.LOADCAP {
-		data, err := os.ReadFile(settings.CAPFILE)
+		data, err := os.ReadFile(settings.Config[settings.CAPFILE])
+		if err != nil {
+			log.Println(err)
+			return caps, err
+		}
 		err = json.Unmarshal(data, &caps)
 		if err != nil {
 			log.Println(err)

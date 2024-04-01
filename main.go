@@ -85,9 +85,16 @@ func ParseCommandLine() error {
 func main() {
 
 	log.SetFlags(log.Lshortfile)
-	ParseCommandLine()
+	err := ParseCommandLine()
+	if err != nil {
+		flag.Usage()
+		log.Panicln(err)
+	}
 
-	caps, _ := parsers.ParseConditionalAccessPolicyList()
+	caps, err := parsers.ParseConditionalAccessPolicyList()
+	if err != nil {
+		log.Panicln(err)
+	}
 	capgap.FindGapsPerUserAndApp(caps, settings.Config[settings.USERID], settings.Config[settings.APPID])
 
 }
