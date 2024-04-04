@@ -35,13 +35,37 @@ func ParseApplications() ([]models.Application, error) {
 	)
 	c.InitializeClient()
 
-	if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
-		applications, err = ParseApplicationsADGraph(&c)
+	if settings.Config[settings.APPFILE_DIRECTION] == settings.LOAD {
+		settings.InfoLogger.Println("Reading applications from " + settings.Config[settings.APPFILE])
+		data, err := os.ReadFile(settings.Config[settings.APPFILE])
 		if err != nil {
 			settings.ErrorLogger.Println(err)
 			return applications, err
 		}
-	} // else msgraph
+		err = json.Unmarshal(data, &applications)
+		if err != nil {
+			settings.ErrorLogger.Println(err)
+			return applications, err
+		}
+		settings.InfoLogger.Println("A total of " + strconv.Itoa(len(applications)) + " applications were retrieved from file")
+	} else {
+		if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
+			applications, err = ParseApplicationsADGraph(&c)
+			if err != nil {
+				settings.ErrorLogger.Println(err)
+				return applications, err
+			}
+		} // else msgraph
+		if settings.Config[settings.APPFILE_DIRECTION] == settings.SAVE {
+			settings.InfoLogger.Println("Saving applications to file: " + settings.Config[settings.APPFILE])
+			content, _ := json.MarshalIndent(applications, "", " ")
+			err = os.WriteFile(settings.Config[settings.APPFILE], content, 0644)
+			if err != nil {
+				settings.ErrorLogger.Println("Could not save applications to file: " + err.Error())
+			}
+		}
+	}
+
 	return applications, nil
 }
 
@@ -54,7 +78,7 @@ func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error
 
 	c.InitializeClient()
 
-	if settings.Config[settings.CAPFILE_DIRECTION] == settings.LOADCAP {
+	if settings.Config[settings.CAPFILE_DIRECTION] == settings.LOAD {
 		settings.InfoLogger.Println("Reading CAPS from " + settings.Config[settings.CAPFILE])
 		data, err := os.ReadFile(settings.Config[settings.CAPFILE])
 		if err != nil {
@@ -66,7 +90,7 @@ func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error
 			settings.ErrorLogger.Println(err)
 			return caps, err
 		}
-		settings.InfoLogger.Println("A total of " + strconv.Itoa(len(caps)) + " conditional access policies were retrieved")
+		settings.InfoLogger.Println("A total of " + strconv.Itoa(len(caps)) + " conditional access policies were retrieved from file")
 	} else {
 		if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
 			caps, err := ParseConditionalAccessPolicyListADGraph(&c)
@@ -75,10 +99,13 @@ func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error
 				return caps, err
 			}
 		} // else MSGRAPH
-		if settings.Config[settings.CAPFILE_DIRECTION] == settings.SAVECAP {
+		if settings.Config[settings.CAPFILE_DIRECTION] == settings.SAVE {
 			settings.InfoLogger.Println("Saving conditional access policies to file: " + settings.Config[settings.CAPFILE])
 			content, _ := json.MarshalIndent(caps, "", " ")
-			_ = os.WriteFile(settings.Config[settings.CAPFILE], content, 0644)
+			err := os.WriteFile(settings.Config[settings.CAPFILE], content, 0644)
+			if err != nil {
+				settings.ErrorLogger.Println("Could not save conditional access policies to file: " + err.Error())
+			}
 		}
 	}
 
