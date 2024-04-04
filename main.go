@@ -58,8 +58,8 @@ func ParseCommandLine() error {
 	if aadGraph && msGraph {
 		return errors.New("You need to choose between AADGraph and MSGraph")
 	}
-	if userId == "" || appId == "" {
-		return errors.New("User or app ID needs to be specified")
+	if userId == "" {
+		return errors.New("User ID needs to be specified")
 	}
 	if tenantId == "" {
 		return errors.New("Tenant needs to be specified")
@@ -89,6 +89,19 @@ func ParseCommandLine() error {
 	return nil
 }
 
+func RunCapGap() {
+
+	caps, err := parsers.ParseConditionalAccessPolicyList()
+	if err != nil {
+		settings.ErrorLogger.Fatalln("Could not retrieve conditional access policies: " + err.Error())
+	}
+	if settings.Config[settings.USERID] != "" && settings.Config[settings.APPID] != "" {
+		capgap.FindGapsPerUserAndApp(caps, settings.Config[settings.USERID], settings.Config[settings.APPID])
+	} else if settings.Config[settings.APPID] == "" {
+		capgap.FindGapsPerUser(caps, settings.Config[settings.USERID])
+	}
+}
+
 func main() {
 
 	err := ParseCommandLine()
@@ -97,10 +110,6 @@ func main() {
 		log.Panicln(err)
 	}
 
-	caps, err := parsers.ParseConditionalAccessPolicyList()
-	if err != nil {
-		settings.ErrorLogger.Fatalln("Could not retrieve conditional access policies: " + err.Error())
-	}
-	capgap.FindGapsPerUserAndApp(caps, settings.Config[settings.USERID], settings.Config[settings.APPID])
+	RunCapGap()
 
 }

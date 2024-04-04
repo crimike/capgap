@@ -104,3 +104,15 @@ func GroupBypassesByLocation(bypassList []models.Bypass) []models.Bypass {
 
 	return response
 }
+
+func SortBypassesByAppId(bypassMap map[string][]models.Bypass) map[models.Bypass][]string {
+	response := make(map[models.Bypass][]string)
+	for k, bypasses := range bypassMap {
+		for _, bypass := range bypasses {
+			// Emptying app ID so comparison between Bypasses can be done
+			bypass.ApplicationId = ""
+			response[bypass] = append(response[bypass], k)
+		}
+	}
+	return response
+}

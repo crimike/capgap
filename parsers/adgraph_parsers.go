@@ -11,10 +11,31 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"slices"
 )
+
+func ParseApplicationsADGraph(c *client.AzureClient) ([]models.Application, error) {
+	var response []models.Application
+
+	appResponse, err := c.GetApplicationsAdGraph()
+	if err != nil {
+		settings.ErrorLogger.Println(err)
+		return response, err
+	}
+
+	for _, appEntry := range appResponse {
+		var app models.Application
+		app.ApplicationId = appEntry.ApplicationId
+		app.DisplayName = appEntry.DisplayName
+		app.ObjectId = appEntry.ObjectId
+
+		response = append(response, app)
+	}
+
+	return response, nil
+}
 
 func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 
@@ -75,7 +96,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 
 			z := flate.NewReader(b)
 			defer z.Close()
-			p, err := ioutil.ReadAll(z)
+			p, err := io.ReadAll(z)
 			if err != nil {
 				settings.ErrorLogger.Println(err)
 				return response, err

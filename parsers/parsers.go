@@ -27,6 +27,24 @@ func ParseLocations() ([]models.Location, error) {
 	return locations, nil
 }
 
+func ParseApplications() ([]models.Application, error) {
+	var (
+		c            client.AzureClient
+		applications []models.Application
+		err          error
+	)
+	c.InitializeClient()
+
+	if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
+		applications, err = ParseApplicationsADGraph(&c)
+		if err != nil {
+			settings.ErrorLogger.Println(err)
+			return applications, err
+		}
+	} // else msgraph
+	return applications, nil
+}
+
 func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error) {
 
 	var (
@@ -58,8 +76,9 @@ func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error
 			}
 		} // else MSGRAPH
 		if settings.Config[settings.CAPFILE_DIRECTION] == settings.SAVECAP {
+			settings.InfoLogger.Println("Saving conditional access policies to file: " + settings.Config[settings.CAPFILE])
 			content, _ := json.MarshalIndent(caps, "", " ")
-			_ = os.WriteFile(settings.CAPFILE, content, 0644)
+			_ = os.WriteFile(settings.Config[settings.CAPFILE], content, 0644)
 		}
 	}
 

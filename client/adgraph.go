@@ -15,6 +15,7 @@ type AdGraphCache struct {
 	GroupMembers map[string][]string
 	RoleMembers  map[string][]string
 	Locations    []adgraph.LocationPolicy
+	Applications []adgraph.Application
 }
 
 var cache AdGraphCache
@@ -155,6 +156,11 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 		response []adgraph.Application
 	)
 
+	if len(cache.Applications) > 0 {
+		settings.InfoLogger.Println("Using cache to retrieve applications")
+		return cache.Applications, nil
+	}
+
 	apiUrl := c.MainUrl + c.Tenant + "/applications?$top=999&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
@@ -203,6 +209,9 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 		}
 
 	}
+
+	settings.InfoLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " applications")
+	cache.Applications = append(cache.Applications, response...)
 
 	return response, nil
 }
