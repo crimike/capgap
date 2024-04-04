@@ -22,37 +22,44 @@ func PrintUsage() {
 
 func ParseCommandLine() error {
 	var (
-		accessToken    string
-		userId         string
-		appId          string
-		aadGraph       bool
-		msGraph        bool
-		saveToFile     string
-		loadFromFile   string
-		tenantId       string
-		verboseLogging bool
+		accessToken     string
+		userId          string
+		appId           string
+		aadGraph        bool
+		msGraph         bool
+		saveCapToFile   string
+		loadCapFromFile string
+		saveAppToFile   string
+		loadAppFromFile string
+		tenantId        string
+		verboseLogging  bool
 	)
 	flag.StringVar(&accessToken, "accessToken", "", "JWT access token for the specified scope")
 	flag.StringVar(&userId, "userId", "", "User ObjectId for which to check gaps")
 	flag.StringVar(&appId, "appId", "", "Application ID for which to check gaps")
 	flag.BoolVar(&aadGraph, "aad", true, "Whether to use AAD Graph or MS Graph - current default is AAD Graph")
 	flag.BoolVar(&msGraph, "msgraph", false, "Whether to use AAD Graph or MS Graph - current default is AAD Graph")
-	flag.StringVar(&saveToFile, "save", "", "If enabled, saves the conditional access policies to file(JSON format) - useful during testing")
-	flag.StringVar(&loadFromFile, "load", "", "If present, conditional access policies will be loaded from the file given(JSON format)")
+	flag.StringVar(&saveCapToFile, "saveCaps", "", "If enabled, saves the conditional access policies to file(JSON format) - useful during testing")
+	flag.StringVar(&loadCapFromFile, "loadCaps", "", "If present, conditional access policies will be loaded from the file given(JSON format)")
+	flag.StringVar(&saveAppToFile, "saveApps", "", "If enabled, saves the applications to file(JSON format) - useful during testing")
+	flag.StringVar(&loadAppFromFile, "loadApps", "", "If present, applications will be loaded from the file given(JSON format)")
 	flag.StringVar(&tenantId, "tenant", "", "Specify tenant ID ")
 	flag.BoolVar(&verboseLogging, "v", false, "Verbose logging")
 	flag.Usage = PrintUsage
 	flag.Parse()
 	//check params
-	if saveToFile != "" && loadFromFile != "" {
+	if saveCapToFile != "" && loadCapFromFile != "" {
 		return errors.New("Cannot save and load conditional access policies at the same time")
+	}
+	if saveAppToFile != "" && loadAppFromFile != "" {
+		return errors.New("Cannot save and load apps at the same time")
 	}
 	if accessToken == "" {
 		return errors.New("Access token needs to be provided")
 	}
-	if loadFromFile != "" {
-		if _, err := os.Stat(loadFromFile); err != nil {
-			return fmt.Errorf("File provided("+loadFromFile+") does not exist: [%w]", err)
+	if loadCapFromFile != "" {
+		if _, err := os.Stat(loadCapFromFile); err != nil {
+			return fmt.Errorf("File provided("+loadCapFromFile+") does not exist: [%w]", err)
 		}
 	}
 	if aadGraph && msGraph {
@@ -73,13 +80,21 @@ func ParseCommandLine() error {
 	} else {
 		settings.Config[settings.CLIENTENDPOINT] = settings.AADGRAPH
 	}
-	if saveToFile != "" {
-		settings.Config[settings.CAPFILE] = saveToFile
-		settings.Config[settings.CAPFILE_DIRECTION] = settings.SAVECAP
+	if saveCapToFile != "" {
+		settings.Config[settings.CAPFILE] = saveCapToFile
+		settings.Config[settings.CAPFILE_DIRECTION] = settings.SAVE
 	}
-	if loadFromFile != "" {
-		settings.Config[settings.CAPFILE] = loadFromFile
-		settings.Config[settings.CAPFILE_DIRECTION] = settings.LOADCAP
+	if loadCapFromFile != "" {
+		settings.Config[settings.CAPFILE] = loadCapFromFile
+		settings.Config[settings.CAPFILE_DIRECTION] = settings.LOAD
+	}
+	if saveAppToFile != "" {
+		settings.Config[settings.APPFILE] = saveAppToFile
+		settings.Config[settings.APPFILE_DIRECTION] = settings.SAVE
+	}
+	if loadAppFromFile != "" {
+		settings.Config[settings.APPFILE] = loadAppFromFile
+		settings.Config[settings.APPFILE_DIRECTION] = settings.LOAD
 	}
 	if verboseLogging {
 		settings.Config[settings.VERBOSE] = settings.VERBOSE_ON
