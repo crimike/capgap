@@ -5,22 +5,26 @@ This tool is meant to help with overly complicated Conditional Access Policies w
 
 ## Usage
 ```
--aad
+CapGap is meant to discover Azure Conditional Access Policy bypasses for certain combinations.
+  -aad
         Whether to use AAD Graph or MS Graph - current default is AAD Graph (default true)
   -accessToken string
         JWT access token for the specified scope
   -appId string
         Application ID for which to check gaps
-  -load string
-        If present, conditional access policies will be loaded from the file given(JSON format)
+  -load
+        If present, conditional access policies, users, apps and locations will be loaded from the file given(JSON format)
+  -log string
+        Specify log filename to log to instead of STDOUT
   -msgraph
         Whether to use AAD Graph or MS Graph - current default is AAD Graph
-  -save string
-        If enabled, saves the conditional access policies to file(JSON format) - useful during testing
+  -save
+        If enabled, saves the conditional access policies, users, apps and locations to file(JSON format) - useful during testing
   -tenant string
-        Specify tenant ID
+        Specify tenant ID 
   -userId string
         User ObjectId for which to check gaps
+  -v    Verbose logging
 ```
 
 
@@ -46,8 +50,7 @@ In no particular order:
 * Implement different login options(device code, user/password, refresh token)
 * Expand custom authentication strengths
 * Parse controls to see any gaps there
-* Debug logging
-* Find gaps for all apps/users/per Conditional Access Policy
+* Find gaps per Conditional Access Policy
 * Parse DeviceFilter
 * Take into account user/signin risk
 * PrettyPrint bypasses
@@ -57,3 +60,4 @@ In no particular order:
 ## Acknowledgements/inspirations
 
 * Retrieval of CAPs and locations was copied from Dirk-jan's [ROADTools](https://github.com/dirkjanm/ROADtools)
+
