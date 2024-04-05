@@ -69,6 +69,48 @@ func ParseApplications() ([]models.Application, error) {
 	return applications, nil
 }
 
+func ParseUsers() ([]models.User, error) {
+	var (
+		c     client.AzureClient
+		users []models.User
+		err   error
+	)
+	c.InitializeClient()
+
+	if settings.Config[settings.USERFILE_DIRECTION] == settings.LOAD {
+		settings.InfoLogger.Println("Reading users from " + settings.Config[settings.USERFILE])
+		data, err := os.ReadFile(settings.Config[settings.USERFILE])
+		if err != nil {
+			settings.ErrorLogger.Println(err)
+			return users, err
+		}
+		err = json.Unmarshal(data, &users)
+		if err != nil {
+			settings.ErrorLogger.Println(err)
+			return users, err
+		}
+		settings.InfoLogger.Println("A total of " + strconv.Itoa(len(users)) + " users were retrieved from file")
+	} else {
+		if settings.Config[settings.CLIENTENDPOINT] == settings.AADGRAPH {
+			users, err = ParseUsersADGraph(&c)
+			if err != nil {
+				settings.ErrorLogger.Println(err)
+				return users, err
+			}
+		} // else msgraph
+		if settings.Config[settings.USERFILE_DIRECTION] == settings.SAVE {
+			settings.InfoLogger.Println("Saving users to file: " + settings.Config[settings.USERFILE])
+			content, _ := json.MarshalIndent(users, "", " ")
+			err = os.WriteFile(settings.Config[settings.USERFILE], content, 0644)
+			if err != nil {
+				settings.ErrorLogger.Println("Could not save users to file: " + err.Error())
+			}
+		}
+	}
+
+	return users, nil
+}
+
 func ParseConditionalAccessPolicyList() ([]models.ConditionalAccessPolicy, error) {
 
 	var (

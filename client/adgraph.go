@@ -16,6 +16,7 @@ type AdGraphCache struct {
 	RoleMembers  map[string][]string
 	Locations    []adgraph.LocationPolicy
 	Applications []adgraph.Application
+	Users        []adgraph.User
 }
 
 var cache AdGraphCache
@@ -195,7 +196,7 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 		var apps adgraph.ApplicationResponse
 		err = json.Unmarshal(body, &apps)
 		if err != nil {
-			settings.ErrorLogger.Println("Error parsing the JSON received into CAPs: " + err.Error())
+			settings.ErrorLogger.Println("Error parsing the JSON received into apps: " + err.Error())
 			return response, err
 		}
 
@@ -389,4 +390,69 @@ func (c *AzureClient) GetRoleMembersAdGraph(roleId string) ([]string, error) {
 	cache.RoleMembers[roleId] = append(cache.RoleMembers[roleId], roleMembers...)
 
 	return roleMembers, nil
+}
+
+func (c *AzureClient) GetUsersAdGraph() ([]adgraph.User, error) {
+	var (
+		response []adgraph.User
+	)
+
+	if len(cache.Users) > 0 {
+		settings.InfoLogger.Println("Using cache to retrieve users")
+		return cache.Users, nil
+	}
+
+	apiUrl := c.MainUrl + c.Tenant + "/users?$top=999&api-version=" + c.ApiVersion
+
+	for apiUrl != "" {
+		settings.InfoLogger.Println("URL for user retrieving is: " + apiUrl)
+		req, err := http.NewRequest("GET", apiUrl, nil)
+		if err != nil {
+			settings.ErrorLogger.Println("Could not create GET request for users: " + err.Error())
+			return response, err
+		}
+
+		// Add the Bearer token to the request header
+		req.Header.Set("Authorization", "Bearer "+c.AccessToken)
+
+		resp, err := c.HttpClient.Do(req)
+		if err != nil {
+			settings.ErrorLogger.Println("Could not issue GET request for users: " + err.Error())
+			return response, err
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			settings.ErrorLogger.Println("Could not read response body of users: " + err.Error())
+			return response, err
+		}
+
+		if resp.StatusCode != 200 {
+			settings.InfoLogger.Println("Response received: " + string(body))
+			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
+		}
+
+		var users adgraph.UserResponse
+		err = json.Unmarshal(body, &users)
+		if err != nil {
+			settings.ErrorLogger.Println("Error parsing the JSON received into users: " + err.Error())
+			return response, err
+		}
+
+		response = append(response, users.Users...)
+
+		//rebuilding apiUrl
+		if strings.Contains(users.NextLink, "directoryObjects") {
+			apiUrl = c.MainUrl + c.Tenant + "/" + users.NextLink + "&$top=999&api-version=" + c.ApiVersion
+		} else {
+			apiUrl = users.NextLink
+		}
+
+	}
+
+	settings.InfoLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " users")
+	cache.Users = append(cache.Users, response...)
+
+	return response, nil
 }

@@ -116,3 +116,15 @@ func SortBypassesByAppId(bypassMap map[string][]models.Bypass) map[models.Bypass
 	}
 	return response
 }
+
+func SortBypassesByUserId(bypassMap map[string][]models.Bypass) map[models.Bypass][]string {
+	response := make(map[models.Bypass][]string)
+	for k, bypasses := range bypassMap {
+		for _, bypass := range bypasses {
+			// Emptying user ID so comparison between Bypasses can be done
+			bypass.UserId = ""
+			response[bypass] = append(response[bypass], k)
+		}
+	}
+	return response
+}

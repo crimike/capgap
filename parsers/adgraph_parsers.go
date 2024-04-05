@@ -19,19 +19,41 @@ import (
 func ParseApplicationsADGraph(c *client.AzureClient) ([]models.Application, error) {
 	var response []models.Application
 
-	appResponse, err := c.GetApplicationsAdGraph()
+	appList, err := c.GetApplicationsAdGraph()
 	if err != nil {
 		settings.ErrorLogger.Println(err)
 		return response, err
 	}
 
-	for _, appEntry := range appResponse {
+	for _, appEntry := range appList {
 		var app models.Application
 		app.ApplicationId = appEntry.ApplicationId
 		app.DisplayName = appEntry.DisplayName
 		app.ObjectId = appEntry.ObjectId
 
 		response = append(response, app)
+	}
+
+	return response, nil
+}
+
+func ParseUsersADGraph(c *client.AzureClient) ([]models.User, error) {
+	var response []models.User
+
+	userList, err := c.GetUsersAdGraph()
+	if err != nil {
+		settings.ErrorLogger.Println(err)
+		return response, err
+	}
+
+	for _, userEntry := range userList {
+		var user models.User
+		user.DisplayName = userEntry.DisplayName
+		user.EmailAddress = userEntry.EmailAddress
+		user.ObjectId = userEntry.ObjectId
+		user.UserPrincipalName = userEntry.UserPrincipalName
+
+		response = append(response, user)
 	}
 
 	return response, nil
