@@ -17,8 +17,10 @@ const (
 	TENANT             string = "tenant"
 	VERBOSE            string = "verbose"
 	VERBOSE_ON         string = "ON"
-	CapsFile           string = "caps.json"
-	UserFile           string = "users.json"
-	AppsFile           string = "apps.json"
-	LocationsFile      string = "locations.json"
+	LOGFILE            string = "LogFile"
+
+	CapsFile      string = "caps.json"
+	UserFile      string = "users.json"
+	AppsFile      string = "apps.json"
+	LocationsFile string = "locations.json"
 )

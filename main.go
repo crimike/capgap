@@ -31,6 +31,7 @@ func ParseCommandLine() error {
 		load           bool
 		tenantId       string
 		verboseLogging bool
+		logToFile      string
 	)
 	flag.StringVar(&accessToken, "accessToken", "", "JWT access token for the specified scope")
 	flag.StringVar(&userId, "userId", "", "User ObjectId for which to check gaps")
@@ -38,8 +39,9 @@ func ParseCommandLine() error {
 	flag.BoolVar(&aadGraph, "aad", true, "Whether to use AAD Graph or MS Graph - current default is AAD Graph")
 	flag.BoolVar(&msGraph, "msgraph", false, "Whether to use AAD Graph or MS Graph - current default is AAD Graph")
 	flag.BoolVar(&save, "save", false, "If enabled, saves the conditional access policies, users, apps and locations to file(JSON format) - useful during testing")
-	flag.BoolVar(&load, "loadCaps", false, "If present, conditional access policies, users, apps and locations will be loaded from the file given(JSON format)")
+	flag.BoolVar(&load, "load", false, "If present, conditional access policies, users, apps and locations will be loaded from the file given(JSON format)")
 	flag.StringVar(&tenantId, "tenant", "", "Specify tenant ID ")
+	flag.StringVar(&logToFile, "log", "", "Specify log filename to log to instead of STDOUT")
 	flag.BoolVar(&verboseLogging, "v", false, "Verbose logging")
 	flag.Usage = PrintUsage
 	flag.Parse()
@@ -73,6 +75,7 @@ func ParseCommandLine() error {
 	if verboseLogging {
 		settings.Config[settings.VERBOSE] = settings.VERBOSE_ON
 	}
+	settings.Config[settings.LOGFILE] = logToFile
 	settings.InitLogging()
 	settings.Config[settings.ACCESSTOKEN] = accessToken
 	settings.Config[settings.USERID] = userId
@@ -99,14 +102,15 @@ func RunCapGap() {
 
 	caps, err := parsers.ParseConditionalAccessPolicyList()
 	if err != nil {
-		settings.ErrorLogger.Fatalln("Could not retrieve conditional access policies: " + err.Error())
+		fmt.Println("Could not retrieve conditional access policies: " + err.Error())
+		return
 	}
 	if settings.Config[settings.USERID] != "" && settings.Config[settings.APPID] != "" {
 		capgap.FindGapsPerUserAndApp(caps, settings.Config[settings.USERID], settings.Config[settings.APPID])
 	} else if settings.Config[settings.APPID] == "" {
 		userGaps, err := capgap.FindGapsForUser(caps, settings.Config[settings.USERID])
 		if err != nil {
-			settings.ErrorLogger.Println("Could not find common bypasses for user")
+			fmt.Println("Could not find common bypasses for user: " + err.Error())
 			return
 		}
 		sortedGaps := capgap.SortBypassesByAppId(userGaps)
@@ -114,7 +118,7 @@ func RunCapGap() {
 	} else if settings.Config[settings.USERID] == "" {
 		appGaps, err := capgap.FindGapsForApp(caps, settings.Config[settings.APPID])
 		if err != nil {
-			settings.ErrorLogger.Println("Could not find common bypasses for app")
+			fmt.Println("Could not find common bypasses for app: " + err.Error())
 			return
 		}
 		sortedGaps := capgap.SortBypassesByUserId(appGaps)
@@ -129,6 +133,8 @@ func main() {
 		flag.Usage()
 		log.Panicln(err)
 	}
+
+	defer settings.EndLogging()
 
 	RunCapGap()
 
