@@ -1,7 +1,5 @@
 package enums
 
-// azuread graph URL
-
 const (
 	AllApplications     string         = "All"
 	AllUsers            string         = "All"

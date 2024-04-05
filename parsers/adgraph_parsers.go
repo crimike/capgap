@@ -10,7 +10,6 @@ import (
 	"compress/flate"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"slices"
@@ -188,7 +187,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 		cap       models.ConditionalAccessPolicy
 	)
 
-	fmt.Println("Parsing: " + displayName)
+	settings.InfoLogger.Println("Parsing " + displayName)
 
 	err := json.Unmarshal(policyDetail, &polDetail)
 	if err != nil {
