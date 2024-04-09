@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// TODO: remove locations, apps and users from the cache
 type AdGraphCache struct {
 	GroupMembers map[string][]string
 	RoleMembers  map[string][]string
@@ -36,14 +37,14 @@ func (c *AzureClient) GetNamedLocationsAdGraph() ([]adgraph.LocationPolicy, erro
 	var response []adgraph.LocationPolicy
 
 	if len(cache.Locations) > 0 {
-		settings.InfoLogger.Println("Using cache to retrieve locations")
+		settings.DebugLogger.Println("Using cache to retrieve locations")
 		return cache.Locations, nil
 	}
 
 	apiUrl := c.MainUrl + c.Tenant + "/policies?$top=999&$filter=policyType%20eq%206&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
-		settings.InfoLogger.Println("URL for location retrieving is: " + apiUrl)
+		settings.DebugLogger.Println("URL for location retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
 			settings.ErrorLogger.Println("Could not create GET request for locations: " + err.Error())
@@ -67,7 +68,7 @@ func (c *AzureClient) GetNamedLocationsAdGraph() ([]adgraph.LocationPolicy, erro
 		}
 
 		if resp.StatusCode != 200 {
-			settings.InfoLogger.Println("Response received: " + string(body))
+			settings.DebugLogger.Println("Response received: " + string(body))
 			return response, errors.New("Return code is: " + fmt.Sprint(resp.StatusCode))
 		}
 
@@ -89,7 +90,7 @@ func (c *AzureClient) GetNamedLocationsAdGraph() ([]adgraph.LocationPolicy, erro
 		}
 	}
 
-	settings.InfoLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " locations")
+	settings.DebugLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " locations")
 	cache.Locations = append(cache.Locations, response...)
 
 	return response, nil
@@ -103,7 +104,7 @@ func (c *AzureClient) GetConditionalAccessPoliciesAdGraph() ([]adgraph.Condition
 	apiUrl := c.MainUrl + c.Tenant + "/policies?$top=999&$filter=policyType%20eq%2018&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
-		settings.InfoLogger.Println("URL for CAP retrieving is: " + apiUrl)
+		settings.DebugLogger.Println("URL for CAP retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
 			settings.ErrorLogger.Println("Could not create GET request for CAPs: " + err.Error())
@@ -127,7 +128,7 @@ func (c *AzureClient) GetConditionalAccessPoliciesAdGraph() ([]adgraph.Condition
 		}
 
 		if resp.StatusCode != 200 {
-			settings.InfoLogger.Println("Response received: " + string(body))
+			settings.DebugLogger.Println("Response received: " + string(body))
 			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
@@ -158,14 +159,14 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 	)
 
 	if len(cache.Applications) > 0 {
-		settings.InfoLogger.Println("Using cache to retrieve applications")
+		settings.DebugLogger.Println("Using cache to retrieve applications")
 		return cache.Applications, nil
 	}
 
 	apiUrl := c.MainUrl + c.Tenant + "/applications?$top=999&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
-		settings.InfoLogger.Println("URL for app retrieving is: " + apiUrl)
+		settings.DebugLogger.Println("URL for app retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
 			settings.ErrorLogger.Println("Could not create GET request for apps: " + err.Error())
@@ -189,7 +190,7 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 		}
 
 		if resp.StatusCode != 200 {
-			settings.InfoLogger.Println("Response received: " + string(body))
+			settings.DebugLogger.Println("Response received: " + string(body))
 			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
@@ -211,7 +212,7 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 
 	}
 
-	settings.InfoLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " applications")
+	settings.DebugLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " applications")
 	cache.Applications = append(cache.Applications, response...)
 
 	return response, nil
@@ -227,7 +228,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 
 	apiUrl := c.MainUrl + c.Tenant + "/groups/" + groupId + "?api-version=" + c.ApiVersion
 
-	settings.InfoLogger.Println("Retrieving group information using URL: " + apiUrl)
+	settings.DebugLogger.Println("Retrieving group information using URL: " + apiUrl)
 
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
@@ -252,7 +253,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 	}
 
 	if resp.StatusCode != 200 {
-		settings.InfoLogger.Println("Response received: " + string(body))
+		settings.DebugLogger.Println("Response received: " + string(body))
 		return group, members, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 	}
 
@@ -267,7 +268,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 	// check cache first
 	val, ok := cache.GroupMembers[groupId]
 	if ok {
-		settings.InfoLogger.Println("Retrieving group members from the cache")
+		settings.DebugLogger.Println("Retrieving group members from the cache")
 		return group, val, nil
 	}
 
@@ -298,7 +299,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 		}
 
 		if resp.StatusCode != 200 {
-			settings.InfoLogger.Println("Response received: " + string(body))
+			settings.DebugLogger.Println("Response received: " + string(body))
 			return group, members, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
@@ -398,14 +399,14 @@ func (c *AzureClient) GetUsersAdGraph() ([]adgraph.User, error) {
 	)
 
 	if len(cache.Users) > 0 {
-		settings.InfoLogger.Println("Using cache to retrieve users")
+		settings.DebugLogger.Println("Using cache to retrieve users")
 		return cache.Users, nil
 	}
 
 	apiUrl := c.MainUrl + c.Tenant + "/users?$top=999&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
-		settings.InfoLogger.Println("URL for user retrieving is: " + apiUrl)
+		settings.DebugLogger.Println("URL for user retrieving is: " + apiUrl)
 		req, err := http.NewRequest("GET", apiUrl, nil)
 		if err != nil {
 			settings.ErrorLogger.Println("Could not create GET request for users: " + err.Error())
@@ -429,7 +430,7 @@ func (c *AzureClient) GetUsersAdGraph() ([]adgraph.User, error) {
 		}
 
 		if resp.StatusCode != 200 {
-			settings.InfoLogger.Println("Response received: " + string(body))
+			settings.DebugLogger.Println("Response received: " + string(body))
 			return response, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 		}
 
@@ -451,7 +452,7 @@ func (c *AzureClient) GetUsersAdGraph() ([]adgraph.User, error) {
 
 	}
 
-	settings.InfoLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " users")
+	settings.DebugLogger.Println("Retrieved a total of " + fmt.Sprint(len(response)) + " users")
 	cache.Users = append(cache.Users, response...)
 
 	return response, nil

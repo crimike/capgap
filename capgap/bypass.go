@@ -81,9 +81,9 @@ func GetBypassesForUser(cap models.ConditionalAccessPolicy, users []models.User,
 	return bypasses
 }
 
-func GetBypassesUserToApp(cap models.ConditionalAccessPolicy, userId string, appId string, locations []models.Location) []models.Bypass {
+func GetBypassesUserToApp(cap models.ConditionalAccessPolicy, userId string, appId string) []models.Bypass {
 	var bypasses []models.Bypass
-	for _, location := range locations {
+	for _, location := range parsers.Cache.Locations {
 		for _, devicePlatform := range enums.GetAllDevicePlatforms() {
 			bypasses = append(bypasses, GetBypassesForClientType(cap, userId, appId, location, devicePlatform)...)
 		}
@@ -115,13 +115,13 @@ func GetCommonBypasses(allBypasses [][]models.Bypass) []models.Bypass {
 	return response
 }
 
-func FindGapsPerUserAndApp(caps []models.ConditionalAccessPolicy, userId string, appId string) ([]models.Bypass, error) {
+func FindGapsPerUserAndApp(userId string, appId string) []models.Bypass {
 	var (
 		appliedCaps    []models.ConditionalAccessPolicy
 		bypasses       [][]models.Bypass
 		commonBypasses []models.Bypass
 	)
-	for _, cap := range caps {
+	for _, cap := range parsers.Cache.ConditionalAccessPolicies {
 		if CapAppliesToApplication(cap, appId) && CapAppliesToUser(cap, userId) && len(cap.Controls) > 0 {
 			appliedCaps = append(appliedCaps, cap)
 		}
@@ -129,102 +129,117 @@ func FindGapsPerUserAndApp(caps []models.ConditionalAccessPolicy, userId string,
 
 	// No conditional access policies apply, thus everything is a bypass
 	if len(appliedCaps) == 0 {
-		var b models.Bypass
-		b.ApplicationId = appId
-		b.ClientType = enums.AnyClientType
-		b.DevicePlatform = enums.AnyDevicePlatform
-		b.LocationId = enums.AnyLocation
-		b.UserId = userId
-		commonBypasses = append(commonBypasses, b)
-		return commonBypasses, nil
-	}
-
-	locations, err := parsers.ParseLocations()
-	if err != nil {
-		settings.ErrorLogger.Println(err.Error())
-		return commonBypasses, err
+		return []models.Bypass{
+			{
+				ApplicationId:  appId,
+				ClientType:     enums.AnyClientType,
+				DevicePlatform: enums.AnyDevicePlatform,
+				LocationId:     enums.AnyLocation,
+				UserId:         userId,
+			},
+		}
 	}
 
 	for _, cap := range appliedCaps {
-		b := GetBypassesUserToApp(cap, userId, appId, locations)
+		b := GetBypassesUserToApp(cap, userId, appId)
 		bypasses = append(bypasses, b)
 	}
 
-	count := 0
-	for _, bl := range bypasses {
-		count += len(bl)
-	}
-	settings.InfoLogger.Println("Found a total of " + fmt.Sprint(count) + " bypasses for user " + userId + " to app " + appId)
-
 	commonBypasses = GetCommonBypasses(bypasses)
+	bypasses = nil
 	commonBypasses = GroupBypassesByClientId(commonBypasses)
 	commonBypasses = GroupBypassesByDevicePlatform(commonBypasses)
 	commonBypasses = GroupBypassesByLocation(commonBypasses)
-	settings.InfoLogger.Println("Out of those, there are " + fmt.Sprint(len(commonBypasses)) + " common bypasses")
 
-	return commonBypasses, nil
+	return commonBypasses
 }
 
-func FindGapsForUser(caps []models.ConditionalAccessPolicy, userId string) (map[string][]models.Bypass, error) {
+func FindGapsForUser(userId string) []models.Bypass {
 	var (
-		appliedCaps []models.ConditionalAccessPolicy
-		appBypases  map[string][]models.Bypass
+		appBypases []models.Bypass
 	)
-	appBypases = make(map[string][]models.Bypass)
 
-	for _, cap := range caps {
-		if CapAppliesToUser(cap, userId) && len(cap.Controls) > 0 {
-			appliedCaps = append(appliedCaps, cap)
-		}
+	settings.DebugLogger.Println("Parsing gaps for user " + userId + " against all apps")
+
+	for i := range parsers.Cache.Applications {
+		x := FindGapsPerUserAndApp(userId, parsers.Cache.Applications[i].ApplicationId)
+		appBypases = append(appBypases, x...)
 	}
 
-	applications, err := parsers.ParseApplications()
-	if err != nil {
-		settings.ErrorLogger.Println(err.Error())
-		return appBypases, err
-	}
-
-	for _, app := range applications {
-		bypasses, err := FindGapsPerUserAndApp(caps, userId, app.ApplicationId)
-		if err != nil {
-			settings.ErrorLogger.Println(err)
-			return appBypases, err
-		}
-		appBypases[app.ApplicationId] = append(appBypases[app.ApplicationId], bypasses...)
-	}
-
-	return appBypases, nil
+	return appBypases
 }
 
-func FindGapsForApp(caps []models.ConditionalAccessPolicy, appId string) (map[string][]models.Bypass, error) {
+func FindGapsForApp(appId string) []models.Bypass {
 	var (
-		appliedCaps  []models.ConditionalAccessPolicy
-		userBypasses map[string][]models.Bypass
+		userBypasses []models.Bypass
+		useAllUsers  bool
 	)
-	userBypasses = make(map[string][]models.Bypass)
 
-	for _, cap := range caps {
+	settings.DebugLogger.Println("Parsing gaps for application " + appId + " against all users")
+
+	// Optimization: attempt to parse applied caps on the application, and if not all users are included, we could limit the list to the included users
+	useAllUsers = false
+	for _, cap := range parsers.Cache.ConditionalAccessPolicies {
 		if CapAppliesToApplication(cap, appId) && len(cap.Controls) > 0 {
-			appliedCaps = append(appliedCaps, cap)
+			if cap.IncludedUsers[0] == enums.AllUsers {
+				useAllUsers = true
+			}
 		}
 	}
 
-	users, err := parsers.ParseUsers()
-	if err != nil {
-		settings.ErrorLogger.Println(err.Error())
-		return userBypasses, err
-	}
-
-	for _, user := range users {
-		bypasses, err := FindGapsPerUserAndApp(caps, user.ObjectId, appId)
-		if err != nil {
-			settings.ErrorLogger.Println(err)
-			return userBypasses, err
+	if useAllUsers {
+		for i := range parsers.Cache.Users {
+			ub := FindGapsPerUserAndApp(parsers.Cache.Users[i].ObjectId, appId)
+			userBypasses = append(userBypasses, ub...)
 		}
-		userBypasses[user.ObjectId] = append(userBypasses[user.ObjectId], bypasses...)
+	} else {
+		var userIds []string
+		for _, cap := range parsers.Cache.ConditionalAccessPolicies {
+			if CapAppliesToApplication(cap, appId) && len(cap.Controls) > 0 {
+				userIds = append(userIds, cap.IncludedUsers...)
+			}
+		}
+		for i := range userIds {
+			ub := FindGapsPerUserAndApp(userIds[i], appId)
+			userBypasses = append(userBypasses, ub...)
+		}
 	}
 
-	return userBypasses, nil
+	return userBypasses
+}
+
+// due to optimization, reporting happens inline
+func FindAllGaps() {
+	appCount := len(parsers.Cache.Applications)
+	workerCount := 50
+
+	results := make(chan []models.Bypass, workerCount)
+	jobs := make(chan string, appCount)
+
+	for w := 0; w < workerCount; w++ {
+		go func(jobs <-chan string, results chan<- []models.Bypass) {
+			for appId := range jobs {
+				b := FindGapsForApp(appId)
+				results <- b
+			}
+
+		}(jobs, results)
+	}
+
+	for i := range parsers.Cache.Applications {
+		jobs <- parsers.Cache.Applications[i].ApplicationId
+	}
+
+	close(jobs)
+	settings.InfoLogger.Println("All jobs started")
+
+	for i := 0; i < appCount; i++ {
+		bps := <-results
+		if i%10 == 0 {
+			settings.InfoLogger.Println("Parsed " + fmt.Sprint(i) + "/" + fmt.Sprint(appCount) + " applications. Current ammount of bypasses: " + fmt.Sprint(len(bps)))
+		}
+		ReportAll(&bps)
+	}
 }
 
 // func FindGapsPerCap

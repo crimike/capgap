@@ -15,7 +15,7 @@ import (
 )
 
 func PrintUsage() {
-	fmt.Println("CapGap is meant to discover Azure Conditional Access Policy bypasses for certain combinations.")
+	fmt.Println("CapGap is meant to discover Azure Conditional Access Policy bypasses for given combinations.")
 	fmt.Println()
 	flag.PrintDefaults()
 }
@@ -32,6 +32,7 @@ func ParseCommandLine() error {
 		tenantId       string
 		verboseLogging bool
 		logToFile      string
+		reportToFile   string
 	)
 	flag.StringVar(&accessToken, "accessToken", "", "JWT access token for the specified scope")
 	flag.StringVar(&userId, "userId", "", "User ObjectId for which to check gaps")
@@ -42,15 +43,13 @@ func ParseCommandLine() error {
 	flag.BoolVar(&load, "load", false, "If present, conditional access policies, users, apps and locations will be loaded from the file given(JSON format)")
 	flag.StringVar(&tenantId, "tenant", "", "Specify tenant ID ")
 	flag.StringVar(&logToFile, "log", "", "Specify log filename to log to instead of STDOUT")
+	flag.StringVar(&reportToFile, "report", "", "Specify report filename to write results to instead of STDOUT")
 	flag.BoolVar(&verboseLogging, "v", false, "Verbose logging")
 	flag.Usage = PrintUsage
 	flag.Parse()
 	//check params
 	if save && load {
 		return errors.New("Cannot save and load resources at the same time")
-	}
-	if accessToken == "" {
-		return errors.New("Access token needs to be provided")
 	}
 	if load {
 		if _, err := os.Stat(settings.CapsFile); err != nil {
@@ -65,27 +64,33 @@ func ParseCommandLine() error {
 		if _, err := os.Stat(settings.LocationsFile); err != nil {
 			return fmt.Errorf("File provided("+settings.LocationsFile+") does not exist: [%w]", err)
 		}
+	} else {
+		if accessToken == "" {
+			return errors.New("Access token needs to be provided")
+		}
+		if aadGraph && msGraph {
+			return errors.New("You need to choose between AADGraph and MSGraph")
+		}
+		if tenantId == "" {
+			return errors.New("Tenant needs to be specified")
+		}
 	}
-	if aadGraph && msGraph {
-		return errors.New("You need to choose between AADGraph and MSGraph")
-	}
-	if tenantId == "" {
-		return errors.New("Tenant needs to be specified")
-	}
+
 	if verboseLogging {
 		settings.Config[settings.VERBOSE] = settings.VERBOSE_ON
 	}
 	settings.Config[settings.LOGFILE] = logToFile
+	settings.Config[settings.REPORTFILE] = reportToFile
 	settings.InitLogging()
 	settings.Config[settings.ACCESSTOKEN] = accessToken
 	settings.Config[settings.USERID] = userId
 	settings.Config[settings.APPID] = appId
 	settings.Config[settings.TENANT] = tenantId
 	if msGraph {
-		settings.InfoLogger.Println("Using MSGraph Client")
+		settings.DebugLogger.Println("Using MSGraph Client")
 		settings.Config[settings.CLIENTENDPOINT] = settings.MSGRAPH
 	} else {
-		settings.InfoLogger.Println("Using AAD Graph Client")
+		settings.DebugLogger.Println("Using AAD Graph Client")
 		settings.Config[settings.CLIENTENDPOINT] = settings.AADGRAPH
 	}
 	if save {
@@ -93,6 +98,8 @@ func ParseCommandLine() error {
 	}
 	if load {
 		settings.Config[settings.RESOURCE_DIRECTION] = settings.LOAD
+		//if loading, parse all objects
+		parsers.ParseAll()
 	}
 
 	return nil
@@ -100,29 +107,46 @@ func ParseCommandLine() error {
 
 func RunCapGap() {
 
-	caps, err := parsers.ParseConditionalAccessPolicyList()
+	err := parsers.ParseConditionalAccessPolicyList()
 	if err != nil {
-		fmt.Println("Could not retrieve conditional access policies: " + err.Error())
-		return
+		settings.ErrorLogger.Fatalln("Could not parse conditional access policies: " + err.Error())
 	}
+
+	err = parsers.ParseLocations()
+	if err != nil {
+		settings.ErrorLogger.Fatalln("Could not parse locations: " + err.Error())
+	}
+
 	if settings.Config[settings.USERID] != "" && settings.Config[settings.APPID] != "" {
-		capgap.FindGapsPerUserAndApp(caps, settings.Config[settings.USERID], settings.Config[settings.APPID])
-	} else if settings.Config[settings.APPID] == "" {
-		userGaps, err := capgap.FindGapsForUser(caps, settings.Config[settings.USERID])
+		userAppGaps := capgap.FindGapsPerUserAndApp(settings.Config[settings.USERID], settings.Config[settings.APPID])
+		capgap.ReportBypassesUserApp(&userAppGaps)
+	} else if settings.Config[settings.APPID] == "" && settings.Config[settings.USERID] == "" {
+		capgap.FindAllGaps()
+		settings.InfoLogger.Println("Finished finding all bypasses, writing the report")
+	} else if settings.Config[settings.USERID] != "" {
+		err = parsers.ParseApplications()
 		if err != nil {
-			fmt.Println("Could not find common bypasses for user: " + err.Error())
-			return
+			settings.ErrorLogger.Fatalln("Could not parse applications: " + err.Error())
 		}
-		sortedGaps := capgap.SortBypassesByAppId(userGaps)
-		fmt.Println(sortedGaps)
-	} else if settings.Config[settings.USERID] == "" {
-		appGaps, err := capgap.FindGapsForApp(caps, settings.Config[settings.APPID])
+		userGaps := capgap.FindGapsForUser(settings.Config[settings.USERID])
+		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(userGaps)) + "), writing the report")
+		if len(userGaps) == 0 {
+			settings.Reporter.WriteString("No bypasses for user " + settings.Config[settings.USERID])
+		} else {
+			capgap.ReportForUser(&userGaps)
+		}
+	} else if settings.Config[settings.APPID] != "" {
+		err = parsers.ParseUsers()
 		if err != nil {
-			fmt.Println("Could not find common bypasses for app: " + err.Error())
-			return
+			settings.ErrorLogger.Fatalln("Could not parse users: " + err.Error())
 		}
-		sortedGaps := capgap.SortBypassesByUserId(appGaps)
-		fmt.Println(sortedGaps)
+		appGaps := capgap.FindGapsForApp(settings.Config[settings.APPID])
+		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(appGaps)) + "), writing the report")
+		if len(appGaps) == 0 {
+			settings.Reporter.WriteString("No bypasses for app " + settings.Config[settings.APPID])
+		} else {
+			capgap.ReportForApp(&appGaps)
+		}
 	}
 }
 

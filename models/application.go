@@ -1,7 +1,8 @@
 package models
 
 type Application struct {
-	ObjectId      string
+	//commenting out objectId to avoid confusion, since the applicationID is mentioned in conditional access policies
+	// ObjectId      string
 	ApplicationId string
 	DisplayName   string
 }

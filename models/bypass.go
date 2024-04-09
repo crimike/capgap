@@ -11,7 +11,3 @@ type Bypass struct {
 	DevicePlatform enums.DevicePlatform
 	ClientType     enums.ClientType
 }
-
-// func (b Bypass) PrettyPrint() {
-
-// }

@@ -27,9 +27,48 @@ CapGap is meant to discover Azure Conditional Access Policy bypasses for certain
   -v    Verbose logging
 ```
 
+An AAD Graph token can be retrieved as follows:
+```
+PS> (Get-AzAccessToken -ResourceUrl https://graph.windows.net).Token
+```
+
+### Examples 
+The following checks one specific entry, namely the user represented by the ObjectId connecting to the app represented by the ApplicationID. The 3 combinations listed are 3 possibilities to access the app as that user without triggering any Conditional Access Policies to be applied to the SignIn
+```
+term> ./capgap -load -userId 12345678-1234-1234-1234-123456789ab  -appId 9876543-1234-1234-1234-123456789ab
+INFO: 16:19:15 log.go:47: Starting CAPGAP at 16:19:15.077541
+Bypasses for user John going to InternalAppA
+ClientType: Any; DevicePlatform: Any; Location: MainOffice (1.1.1.1/24, )
+ClientType: Any; DevicePlatform: macOS; Location: SecondaryOffice (8.8.8.8/28, 9.9.9.9/28, )
+ClientType: Any; DevicePlatform: Windows_Phone; Location: MainOffice (1.1.1.1/24, )
+INFO: 16:19:15 log.go:52: Parsing finished at 16:19:15.277670
+```
+
+If not loading from file, accessToken and tenant need to be supplied:
+```
+term> ./capgap -save -accessToken eyJ0.... -tenant 99999999-1234-1234-1234-123456789ab -userId 12345678-1234-1234-1234-123456789ab  -appId 9876543-1234-1234-1234-123456789ab
+```
+
+An entire report can be generated as such.
+```
+term> ./capgap -load -report report.txt
+```
+
 
 ## Current caveats
 
+* Note that the tool does not establish if the users actually have access to the application, but it checks for paths where Conditional Access Policies might not apply
+* Parsing the device filter has not been implemented yet - first idea is to search for certain keywords(that might be user-editable)
+* User or signin risk not implemented yet
+* Every Conditional Access Policy is treated as blocking(meaning that if one applies, the assumption is that the controls are good enough)
+* Uses AADGraph
+* Only access token login is currently implemented
+
+
+## Internals
+
+* For users, the ObjectID is the PK. For applications, it is the ApplicationID. For Locations, it is the PolicyId
+* When getting the full report(no appId/userId) depending on your tenant, it might be time/memory consuming. Some optimizations have been added, including in the report generation, but overall, the parsing basically tries all combinations.
 Currently the following properties of a policy are parsed:
 * User/group/role
 * Application
@@ -37,11 +76,7 @@ Currently the following properties of a policy are parsed:
 * Location
 * Client Type
 
-* Parsing the device filter has not been implemented yet - first idea is to search for certain keywords(that might be user-editable)
-* User or signin risk not implemented yet
-* Every Conditional Access Policy is treated as blocking(meaning that if one applies, the assumption is that the controls are good enough)
-* Uses AADGraph
-* Only access token login is currently implemented
+
 
 ## Next items - TODO
 
@@ -53,9 +88,10 @@ In no particular order:
 * Find gaps per Conditional Access Policy
 * Parse DeviceFilter
 * Take into account user/signin risk
-* PrettyPrint bypasses
 * recursive roles and groups
 * Report for dynamic groups included/excluded - to check if they contain user-editable properties in the filters
+* Checks for well-known apps
+* Report for PIM
 
 ## Acknowledgements/inspirations
 

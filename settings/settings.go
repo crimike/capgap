@@ -18,6 +18,7 @@ const (
 	VERBOSE            string = "verbose"
 	VERBOSE_ON         string = "ON"
 	LOGFILE            string = "LogFile"
+	REPORTFILE         string = "ReportFile"
 
 	CapsFile      string = "caps.json"
 	UserFile      string = "users.json"

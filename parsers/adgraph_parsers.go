@@ -15,7 +15,7 @@ import (
 	"slices"
 )
 
-func ParseApplicationsADGraph(c *client.AzureClient) ([]models.Application, error) {
+func parseApplicationsADGraph(c *client.AzureClient) ([]models.Application, error) {
 	var response []models.Application
 
 	appList, err := c.GetApplicationsAdGraph()
@@ -28,7 +28,7 @@ func ParseApplicationsADGraph(c *client.AzureClient) ([]models.Application, erro
 		var app models.Application
 		app.ApplicationId = appEntry.ApplicationId
 		app.DisplayName = appEntry.DisplayName
-		app.ObjectId = appEntry.ObjectId
+		// app.ObjectId = appEntry.ObjectId
 
 		response = append(response, app)
 	}
@@ -36,7 +36,7 @@ func ParseApplicationsADGraph(c *client.AzureClient) ([]models.Application, erro
 	return response, nil
 }
 
-func ParseUsersADGraph(c *client.AzureClient) ([]models.User, error) {
+func parseUsersADGraph(c *client.AzureClient) ([]models.User, error) {
 	var response []models.User
 
 	userList, err := c.GetUsersAdGraph()
@@ -58,7 +58,7 @@ func ParseUsersADGraph(c *client.AzureClient) ([]models.User, error) {
 	return response, nil
 }
 
-func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
+func parseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 
 	var response []models.Location
 	namedLocations, err := c.GetNamedLocationsAdGraph()
@@ -81,7 +81,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 					return response, err
 				}
 				loc.DisplayName = polDetail.KnownNetworkPolicies.NetworkName
-				loc.ObjectId = polDetail.KnownNetworkPolicies.NetworkId
+				// loc.ObjectId = polDetail.KnownNetworkPolicies.NetworkId
 				loc.PolicyId = polDetail.KnownNetworkPolicies.NetworkId
 				loc.IpRange = polDetail.KnownNetworkPolicies.CidrIpRanges
 				if slices.Contains(polDetail.KnownNetworkPolicies.Categories, "trusted") {
@@ -106,7 +106,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 			}
 
 			loc.DisplayName = namedLocation.DisplayName
-			loc.ObjectId = namedLocation.ObjectId
+			// loc.ObjectId = namedLocation.ObjectId
 			loc.PolicyId = namedLocation.PolicyId
 			b64decoded, err := base64.StdEncoding.DecodeString(polDetail.CompressedCidrIpRanges)
 			if err != nil {
@@ -138,7 +138,7 @@ func ParseLocationsADGraph(c *client.AzureClient) ([]models.Location, error) {
 	return response, nil
 }
 
-func ParseGroupADGraph(c *client.AzureClient, groupId string) (models.DynamicGroup, []string, error) {
+func parseGroupADGraph(c *client.AzureClient, groupId string) (models.DynamicGroup, []string, error) {
 
 	var (
 		dgroup models.DynamicGroup
@@ -159,7 +159,7 @@ func ParseGroupADGraph(c *client.AzureClient, groupId string) (models.DynamicGro
 	}
 }
 
-func ParseConditionalAccessPolicyListADGraph(c *client.AzureClient) ([]models.ConditionalAccessPolicy, error) {
+func parseConditionalAccessPolicyListADGraph(c *client.AzureClient) ([]models.ConditionalAccessPolicy, error) {
 	var (
 		response []models.ConditionalAccessPolicy
 	)
@@ -171,7 +171,7 @@ func ParseConditionalAccessPolicyListADGraph(c *client.AzureClient) ([]models.Co
 	}
 
 	for _, capPolicy := range adGraphCaps {
-		result, err := ParseConditionalAccessPolicyADGraph([]byte(capPolicy.PolicyDetail[0]), capPolicy.ObjectId, capPolicy.DisplayName, c)
+		result, err := parseConditionalAccessPolicyADGraph([]byte(capPolicy.PolicyDetail[0]), capPolicy.ObjectId, capPolicy.DisplayName, c)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -181,13 +181,13 @@ func ParseConditionalAccessPolicyListADGraph(c *client.AzureClient) ([]models.Co
 	return response, nil
 }
 
-func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, displayName string, c *client.AzureClient) (models.ConditionalAccessPolicy, error) {
+func parseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, displayName string, c *client.AzureClient) (models.ConditionalAccessPolicy, error) {
 	var (
 		polDetail adgraph.PolicyDetail
 		cap       models.ConditionalAccessPolicy
 	)
 
-	settings.InfoLogger.Println("Parsing " + displayName)
+	settings.DebugLogger.Println("Parsing " + displayName)
 
 	err := json.Unmarshal(policyDetail, &polDetail)
 	if err != nil {
@@ -230,7 +230,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 		cap.IncludedUsers = append(cap.IncludedUsers, userGrouping.Users...)
 		if len(cap.IncludedUsers) == 0 || (len(cap.IncludedUsers) > 0 && cap.IncludedUsers[0] != enums.AllUsers) {
 			for _, groupId := range userGrouping.Groups {
-				dgroup, members, err := ParseGroupADGraph(c, groupId)
+				dgroup, members, err := parseGroupADGraph(c, groupId)
 				if err != nil {
 					settings.ErrorLogger.Println(err)
 					return cap, err
@@ -258,7 +258,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 		cap.ExcludedUsers = append(cap.ExcludedUsers, userGrouping.Users...)
 
 		for _, groupId := range userGrouping.Groups {
-			dgroup, members, err := ParseGroupADGraph(c, groupId)
+			dgroup, members, err := parseGroupADGraph(c, groupId)
 			if err != nil {
 				settings.ErrorLogger.Println(err)
 				return cap, err
@@ -279,7 +279,7 @@ func ParseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 
 	}
 
-	locations, err := ParseLocationsADGraph(c)
+	locations, err := parseLocationsADGraph(c)
 	if err != nil {
 		settings.ErrorLogger.Println(err)
 		return cap, err
