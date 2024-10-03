@@ -211,7 +211,13 @@ func FindGapsForApp(appId string) []models.Bypass {
 // due to optimization, reporting happens inline
 func FindAllGaps() {
 	appCount := len(parsers.Cache.Applications)
+	userCount := len(parsers.Cache.Users)
 	workerCount := 50
+
+	if appCount > 100 || userCount > 100 {
+		settings.InfoLogger.Println("Too many apps or users, for performance reasons all combinations are only parsed if -forced is given as parameter")
+		return
+	}
 
 	results := make(chan []models.Bypass, workerCount)
 	jobs := make(chan string, appCount)
@@ -235,7 +241,7 @@ func FindAllGaps() {
 
 	for i := 0; i < appCount; i++ {
 		bps := <-results
-		if i%10 == 0 {
+		if i%100 == 0 {
 			settings.InfoLogger.Println("Parsed " + fmt.Sprint(i) + "/" + fmt.Sprint(appCount) + " applications. Current ammount of bypasses: " + fmt.Sprint(len(bps)))
 		}
 		ReportAll(&bps)

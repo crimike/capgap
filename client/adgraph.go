@@ -253,7 +253,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 	}
 
 	if resp.StatusCode != 200 {
-		settings.DebugLogger.Println("Response received: " + string(body))
+		settings.DebugLogger.Println("Response received from " + apiUrl + " : " + string(body))
 		return group, members, errors.New("Return code is :" + fmt.Sprint(resp.StatusCode))
 	}
 

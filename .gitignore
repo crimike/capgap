@@ -22,3 +22,9 @@ go.work
 
 # CAP save/load files
 *.json
+
+# CAP reports
+*.txt
+
+# CPU and memory profiles
+*.prof

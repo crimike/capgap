@@ -70,11 +70,11 @@ term> ./capgap -load -report report.txt
 * For users, the ObjectID is the PK. For applications, it is the ApplicationID. For Locations, it is the PolicyId
 * When getting the full report(no appId/userId) depending on your tenant, it might be time/memory consuming. Some optimizations have been added, including in the report generation, but overall, the parsing basically tries all combinations.
 Currently the following properties of a policy are parsed:
-* User/group/role
-* Application
-* DevicePlatform
-* Location
-* Client Type
+  -  User/group/role
+  -  Application
+  -  DevicePlatform
+  -  Location
+  -  Client Type
 
 
 

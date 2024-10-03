@@ -117,17 +117,39 @@ func RunCapGap() {
 		settings.ErrorLogger.Fatalln("Could not parse locations: " + err.Error())
 	}
 
+	if settings.Config[settings.RESOURCE_DIRECTION] == settings.SAVE {
+		settings.InfoLogger.Println("Saving all information to file. All other actions skipped...")
+		err = parsers.ParseApplications()
+		if err != nil {
+			settings.ErrorLogger.Fatalln("Could not parse applications: " + err.Error())
+		}
+		err = parsers.ParseUsers()
+		if err != nil {
+			settings.ErrorLogger.Fatalln("Could not parse users: " + err.Error())
+		}
+		return
+	}
+
+	if settings.Config[settings.USERID] == "" {
+		err = parsers.ParseUsers()
+		if err != nil {
+			settings.ErrorLogger.Fatalln("Could not parse users: " + err.Error())
+		}
+	}
+
+	if settings.Config[settings.APPID] == "" {
+		err = parsers.ParseApplications()
+		if err != nil {
+			settings.ErrorLogger.Fatalln("Could not parse applications: " + err.Error())
+		}
+	}
+
 	if settings.Config[settings.USERID] != "" && settings.Config[settings.APPID] != "" {
 		userAppGaps := capgap.FindGapsPerUserAndApp(settings.Config[settings.USERID], settings.Config[settings.APPID])
 		capgap.ReportBypassesUserApp(&userAppGaps)
 	} else if settings.Config[settings.APPID] == "" && settings.Config[settings.USERID] == "" {
 		capgap.FindAllGaps()
-		settings.InfoLogger.Println("Finished finding all bypasses, writing the report")
 	} else if settings.Config[settings.USERID] != "" {
-		err = parsers.ParseApplications()
-		if err != nil {
-			settings.ErrorLogger.Fatalln("Could not parse applications: " + err.Error())
-		}
 		userGaps := capgap.FindGapsForUser(settings.Config[settings.USERID])
 		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(userGaps)) + "), writing the report")
 		if len(userGaps) == 0 {
@@ -136,10 +158,6 @@ func RunCapGap() {
 			capgap.ReportForUser(&userGaps)
 		}
 	} else if settings.Config[settings.APPID] != "" {
-		err = parsers.ParseUsers()
-		if err != nil {
-			settings.ErrorLogger.Fatalln("Could not parse users: " + err.Error())
-		}
 		appGaps := capgap.FindGapsForApp(settings.Config[settings.APPID])
 		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(appGaps)) + "), writing the report")
 		if len(appGaps) == 0 {
@@ -161,5 +179,4 @@ func main() {
 	defer settings.EndLogging()
 
 	RunCapGap()
-
 }

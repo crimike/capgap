@@ -233,7 +233,7 @@ func parseConditionalAccessPolicyADGraph(policyDetail []byte, objectId string, d
 				dgroup, members, err := parseGroupADGraph(c, groupId)
 				if err != nil {
 					settings.ErrorLogger.Println(err)
-					return cap, err
+					// return cap, err
 				}
 				cap.IncludedUsers = append(cap.IncludedUsers, members...)
 				if dgroup != (models.DynamicGroup{}) {
