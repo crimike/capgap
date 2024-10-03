@@ -214,8 +214,8 @@ func FindAllGaps() {
 	userCount := len(parsers.Cache.Users)
 	workerCount := 50
 
-	if appCount > 100 || userCount > 100 {
-		settings.InfoLogger.Println("Too many apps or users, for performance reasons all combinations are only parsed if -forced is given as parameter")
+	if (appCount > 100 || userCount > 100) && settings.Config[settings.FORCE_REPORT] != settings.FORCE {
+		settings.InfoLogger.Println("Too many apps or users, for performance reasons all combinations are only parsed if -force is given as parameter")
 		return
 	}
 

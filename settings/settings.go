@@ -1,5 +1,6 @@
 package settings
 
+// TODO: migrate to a map[string]interface dictionary to support different types
 var (
 	Config = make(map[string]string)
 )
@@ -19,6 +20,8 @@ const (
 	VERBOSE_ON         string = "ON"
 	LOGFILE            string = "LogFile"
 	REPORTFILE         string = "ReportFile"
+	FORCE_REPORT       string = "ForceReporting"
+	FORCE              string = "FORCE"
 
 	CapsFile      string = "caps.json"
 	UserFile      string = "users.json"

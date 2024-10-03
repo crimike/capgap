@@ -33,6 +33,7 @@ func ParseCommandLine() error {
 		verboseLogging bool
 		logToFile      string
 		reportToFile   string
+		force          bool
 	)
 	flag.StringVar(&accessToken, "accessToken", "", "JWT access token for the specified scope")
 	flag.StringVar(&userId, "userId", "", "User ObjectId for which to check gaps")
@@ -101,17 +102,22 @@ func ParseCommandLine() error {
 		//if loading, parse all objects
 		parsers.ParseAll()
 	}
+	if force {
+		settings.Config[settings.FORCE_REPORT] = settings.FORCE
+	}
 
 	return nil
 }
 
 func RunCapGap() {
 
+	settings.InfoLogger.Println("Parsing CAP list")
 	err := parsers.ParseConditionalAccessPolicyList()
 	if err != nil {
 		settings.ErrorLogger.Fatalln("Could not parse conditional access policies: " + err.Error())
 	}
 
+	settings.InfoLogger.Println("Parsing locations")
 	err = parsers.ParseLocations()
 	if err != nil {
 		settings.ErrorLogger.Fatalln("Could not parse locations: " + err.Error())
