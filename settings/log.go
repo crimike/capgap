@@ -45,7 +45,7 @@ func InitLogging() {
 		InfoLogger.SetOutput(mw)
 		ErrorLogger.SetOutput(mw)
 	}
-	if Config[LOGFILE] == "" && Config[VERBOSE] != VERBOSE_ON {
+	if Config[LOGFILE] == "" && Config[VERBOSE] != TRUE {
 		DebugLogger.SetOutput(io.Discard)
 	}
 	dt := time.Now()

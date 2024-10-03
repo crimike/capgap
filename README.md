@@ -5,23 +5,30 @@ This tool is meant to help with overly complicated Conditional Access Policies w
 
 ## Usage
 ```
-CapGap is meant to discover Azure Conditional Access Policy bypasses for certain combinations.
+CapGap is meant to discover Azure Conditional Access Policy bypasses for given combinations.
+
   -aad
         Whether to use AAD Graph or MS Graph - current default is AAD Graph (default true)
   -accessToken string
         JWT access token for the specified scope
+  -allLocations
+        Force reporting for all different locations
   -appId string
         Application ID for which to check gaps
+  -force
+        Force report generation in case of big tenant
   -load
         If present, conditional access policies, users, apps and locations will be loaded from the file given(JSON format)
   -log string
         Specify log filename to log to instead of STDOUT
   -msgraph
         Whether to use AAD Graph or MS Graph - current default is AAD Graph
+  -report string
+        Specify report filename to write results to instead of STDOUT
   -save
         If enabled, saves the conditional access policies, users, apps and locations to file(JSON format) - useful during testing
   -tenant string
-        Specify tenant ID 
+        Specify tenant ID
   -userId string
         User ObjectId for which to check gaps
   -v    Verbose logging
@@ -29,7 +36,7 @@ CapGap is meant to discover Azure Conditional Access Policy bypasses for certain
 
 An AAD Graph token can be retrieved as follows:
 ```
-PS> (Get-AzAccessToken -ResourceUrl https://graph.windows.net).Token
+(Get-AzAccessToken -ResourceUrl https://graph.windows.net).Token
 ```
 
 ### Examples 
@@ -46,13 +53,22 @@ INFO: 16:19:15 log.go:52: Parsing finished at 16:19:15.277670
 
 If not loading from file, accessToken and tenant need to be supplied:
 ```
-term> ./capgap -save -accessToken eyJ0.... -tenant 99999999-1234-1234-1234-123456789ab -userId 12345678-1234-1234-1234-123456789ab  -appId 9876543-1234-1234-1234-123456789ab
+./capgap -accessToken eyJ0.... -tenant 99999999-1234-1234-1234-123456789ab -userId 12345678-1234-1234-1234-123456789ab  -appId 9876543-1234-1234-1234-123456789ab
+```
+
+Retrieving data can be time consuming in big tenants, so a `-save` parameter will save all info to disk and skip any other actions. `-load` can be used to skip retriving the information from Entra:
+```
+./capgap -accessToken eyJ0.... -tenant 99999999-1234-1234-1234-123456789ab -save
 ```
 
 An entire report can be generated as such.
 ```
-term> ./capgap -load -report report.txt
+./capgap -load -report report.txt
 ```
+
+In case tenant contains more than 100 users or apps, the above will fail and `-force` needs to be supplied to bypass this check.
+
+By default, locations are seen as blocking, so report will only contain bypasses that apply to any location. `-allLocations` can be specified to generate a bypass report for all locations separately.
 
 
 ## Current caveats
@@ -68,7 +84,7 @@ term> ./capgap -load -report report.txt
 ## Internals
 
 * For users, the ObjectID is the PK. For applications, it is the ApplicationID. For Locations, it is the PolicyId
-* When getting the full report(no appId/userId) depending on your tenant, it might be time/memory consuming. Some optimizations have been added, including in the report generation, but overall, the parsing basically tries all combinations.
+* When getting the full report(no appId/userId) depending on your tenant, it might be time/memory consuming. Thus a `-force` parameter was added. Additionally, some optimizations have been added, including in the report generation, but overall, the parsing basically tries all combinations.
 Currently the following properties of a policy are parsed:
   -  User/group/role
   -  Application

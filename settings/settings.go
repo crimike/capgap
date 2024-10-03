@@ -17,11 +17,11 @@ const (
 	SAVE               string = "save"
 	TENANT             string = "tenant"
 	VERBOSE            string = "verbose"
-	VERBOSE_ON         string = "ON"
 	LOGFILE            string = "LogFile"
 	REPORTFILE         string = "ReportFile"
 	FORCE_REPORT       string = "ForceReporting"
-	FORCE              string = "FORCE"
+	TRUE               string = "TRUE"
+	ALL_LOCATIONS      string = "AllLocations"
 
 	CapsFile      string = "caps.json"
 	UserFile      string = "users.json"

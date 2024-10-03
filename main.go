@@ -34,6 +34,7 @@ func ParseCommandLine() error {
 		logToFile      string
 		reportToFile   string
 		force          bool
+		allLocations   bool
 	)
 	flag.StringVar(&accessToken, "accessToken", "", "JWT access token for the specified scope")
 	flag.StringVar(&userId, "userId", "", "User ObjectId for which to check gaps")
@@ -46,6 +47,8 @@ func ParseCommandLine() error {
 	flag.StringVar(&logToFile, "log", "", "Specify log filename to log to instead of STDOUT")
 	flag.StringVar(&reportToFile, "report", "", "Specify report filename to write results to instead of STDOUT")
 	flag.BoolVar(&verboseLogging, "v", false, "Verbose logging")
+	flag.BoolVar(&force, "force", false, "Force report generation in case of big tenant")
+	flag.BoolVar(&allLocations, "allLocations", false, "Force reporting for all different locations")
 	flag.Usage = PrintUsage
 	flag.Parse()
 	//check params
@@ -78,7 +81,7 @@ func ParseCommandLine() error {
 	}
 
 	if verboseLogging {
-		settings.Config[settings.VERBOSE] = settings.VERBOSE_ON
+		settings.Config[settings.VERBOSE] = settings.TRUE
 	}
 	settings.Config[settings.LOGFILE] = logToFile
 	settings.Config[settings.REPORTFILE] = reportToFile
@@ -102,8 +105,11 @@ func ParseCommandLine() error {
 		//if loading, parse all objects
 		parsers.ParseAll()
 	}
+	if allLocations {
+		settings.Config[settings.ALL_LOCATIONS] = settings.TRUE
+	}
 	if force {
-		settings.Config[settings.FORCE_REPORT] = settings.FORCE
+		settings.Config[settings.FORCE_REPORT] = settings.TRUE
 	}
 
 	return nil
