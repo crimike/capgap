@@ -327,3 +327,31 @@ func ReportAll(bypasses *[]models.Bypass) {
 		settings.Reporter.WriteString("======================================\n")
 	}
 }
+
+func ReportCapsForUserApp(userId string, appId string) {
+	// foreach CAP if CapAppliesToUser and CapAppliesToApplication, then write name
+	settings.Reporter.WriteString("The following CAPs apply to user " + userId + " accessing app " + appId + "\n")
+	for _, cap := range parsers.Cache.ConditionalAccessPolicies {
+		if CapAppliesToUser(cap, userId) && CapAppliesToApplication(cap, appId) {
+			settings.Reporter.WriteString(cap.DisplayName + "\n")
+		}
+	}
+}
+
+func ReportCapsForUser(userId string) {
+	settings.Reporter.WriteString("The following CAPs apply to user " + userId + "\n")
+	for _, cap := range parsers.Cache.ConditionalAccessPolicies {
+		if CapAppliesToUser(cap, userId) {
+			settings.Reporter.WriteString(cap.DisplayName + "\n")
+		}
+	}
+}
+
+func ReportCapsForApp(appId string) {
+	settings.Reporter.WriteString("The following CAPs apply to application " + appId + "\n")
+	for _, cap := range parsers.Cache.ConditionalAccessPolicies {
+		if CapAppliesToApplication(cap, appId) {
+			settings.Reporter.WriteString(cap.DisplayName + "\n")
+		}
+	}
+}

@@ -137,6 +137,7 @@ func RunCapGap() {
 	}
 
 	if settings.Config[settings.USERID] == "" {
+		settings.InfoLogger.Println("Parsing users")
 		err = parsers.ParseUsers()
 		if err != nil {
 			settings.ErrorLogger.Fatalln("Could not parse users: " + err.Error())
@@ -144,6 +145,7 @@ func RunCapGap() {
 	}
 
 	if settings.Config[settings.APPID] == "" {
+		settings.InfoLogger.Println("Parsing applications")
 		err = parsers.ParseApplications()
 		if err != nil {
 			settings.ErrorLogger.Fatalln("Could not parse applications: " + err.Error())
@@ -152,11 +154,14 @@ func RunCapGap() {
 
 	if settings.Config[settings.USERID] != "" && settings.Config[settings.APPID] != "" {
 		userAppGaps := capgap.FindGapsPerUserAndApp(settings.Config[settings.USERID].(string), settings.Config[settings.APPID].(string))
+		capgap.ReportCapsForUserApp(settings.Config[settings.USERID].(string), settings.Config[settings.APPID].(string))
 		capgap.ReportBypassesUserApp(&userAppGaps)
 	} else if settings.Config[settings.APPID] == "" && settings.Config[settings.USERID] == "" {
+		//due to optimizations in big tenants, reporting happens inside
 		capgap.FindAllGaps()
 	} else if settings.Config[settings.USERID] != "" {
 		userGaps := capgap.FindGapsForUser(settings.Config[settings.USERID].(string))
+		capgap.ReportCapsForUser(settings.Config[settings.USERID].(string))
 		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(userGaps)) + "), writing the report")
 		if len(userGaps) == 0 {
 			settings.Reporter.WriteString("No bypasses for user " + settings.Config[settings.USERID].(string))
@@ -165,6 +170,7 @@ func RunCapGap() {
 		}
 	} else if settings.Config[settings.APPID] != "" {
 		appGaps := capgap.FindGapsForApp(settings.Config[settings.APPID].(string))
+		capgap.ReportCapsForApp(settings.Config[settings.APPID].(string))
 		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(appGaps)) + "), writing the report")
 		if len(appGaps) == 0 {
 			settings.Reporter.WriteString("No bypasses for app " + settings.Config[settings.APPID].(string))

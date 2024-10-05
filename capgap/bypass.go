@@ -121,6 +121,9 @@ func FindGapsPerUserAndApp(userId string, appId string) []models.Bypass {
 		bypasses       [][]models.Bypass
 		commonBypasses []models.Bypass
 	)
+
+	settings.DebugLogger.Println("Parsing gaps for user " + userId + " against aapplication " + appId)
+
 	for _, cap := range parsers.Cache.ConditionalAccessPolicies {
 		if CapAppliesToApplication(cap, appId) && CapAppliesToUser(cap, userId) && len(cap.Controls) > 0 {
 			appliedCaps = append(appliedCaps, cap)
@@ -214,6 +217,8 @@ func FindAllGaps() {
 	userCount := len(parsers.Cache.Users)
 	workerCount := 50
 
+	settings.DebugLogger.Println("Parsing all combinations in this tenant")
+
 	if (appCount > 100 || userCount > 100) && !settings.Config[settings.FORCE_REPORT].(bool) {
 		settings.InfoLogger.Println("Too many apps or users, for performance reasons all combinations are only parsed if -force is given as parameter")
 		return
@@ -237,7 +242,7 @@ func FindAllGaps() {
 	}
 
 	close(jobs)
-	settings.InfoLogger.Println("All jobs started")
+	settings.DebugLogger.Println("All jobs started")
 
 	for i := 0; i < appCount; i++ {
 		bps := <-results
