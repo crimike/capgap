@@ -80,9 +80,7 @@ func ParseCommandLine() error {
 		}
 	}
 
-	if verboseLogging {
-		settings.Config[settings.VERBOSE] = settings.TRUE
-	}
+	settings.Config[settings.VERBOSE] = verboseLogging
 	settings.Config[settings.LOGFILE] = logToFile
 	settings.Config[settings.REPORTFILE] = reportToFile
 	settings.InitLogging()
@@ -105,12 +103,8 @@ func ParseCommandLine() error {
 		//if loading, parse all objects
 		parsers.ParseAll()
 	}
-	if allLocations {
-		settings.Config[settings.ALL_LOCATIONS] = settings.TRUE
-	}
-	if force {
-		settings.Config[settings.FORCE_REPORT] = settings.TRUE
-	}
+	settings.Config[settings.ALL_LOCATIONS] = allLocations
+	settings.Config[settings.FORCE_REPORT] = force
 
 	return nil
 }
@@ -157,23 +151,23 @@ func RunCapGap() {
 	}
 
 	if settings.Config[settings.USERID] != "" && settings.Config[settings.APPID] != "" {
-		userAppGaps := capgap.FindGapsPerUserAndApp(settings.Config[settings.USERID], settings.Config[settings.APPID])
+		userAppGaps := capgap.FindGapsPerUserAndApp(settings.Config[settings.USERID].(string), settings.Config[settings.APPID].(string))
 		capgap.ReportBypassesUserApp(&userAppGaps)
 	} else if settings.Config[settings.APPID] == "" && settings.Config[settings.USERID] == "" {
 		capgap.FindAllGaps()
 	} else if settings.Config[settings.USERID] != "" {
-		userGaps := capgap.FindGapsForUser(settings.Config[settings.USERID])
+		userGaps := capgap.FindGapsForUser(settings.Config[settings.USERID].(string))
 		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(userGaps)) + "), writing the report")
 		if len(userGaps) == 0 {
-			settings.Reporter.WriteString("No bypasses for user " + settings.Config[settings.USERID])
+			settings.Reporter.WriteString("No bypasses for user " + settings.Config[settings.USERID].(string))
 		} else {
 			capgap.ReportForUser(&userGaps)
 		}
 	} else if settings.Config[settings.APPID] != "" {
-		appGaps := capgap.FindGapsForApp(settings.Config[settings.APPID])
+		appGaps := capgap.FindGapsForApp(settings.Config[settings.APPID].(string))
 		settings.InfoLogger.Println("Finished finding all bypasses(" + fmt.Sprint(len(appGaps)) + "), writing the report")
 		if len(appGaps) == 0 {
-			settings.Reporter.WriteString("No bypasses for app " + settings.Config[settings.APPID])
+			settings.Reporter.WriteString("No bypasses for app " + settings.Config[settings.APPID].(string))
 		} else {
 			capgap.ReportForApp(&appGaps)
 		}

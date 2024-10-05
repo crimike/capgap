@@ -164,7 +164,7 @@ func GroupBypassesByLocation(bypassList []models.Bypass) []models.Bypass {
 		if allCombinations {
 			aux.LocationId = enums.AnyLocation
 			response = append(response, aux)
-		} else if settings.Config[settings.ALL_LOCATIONS] == settings.TRUE { //only append bypasses with other locations is -allLocations is specified
+		} else if settings.Config[settings.ALL_LOCATIONS].(bool) { //only append bypasses with other locations is -allLocations is specified
 			response = append(response, bypass)
 		}
 	}

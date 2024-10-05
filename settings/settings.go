@@ -1,8 +1,7 @@
 package settings
 
-// TODO: migrate to a map[string]interface dictionary to support different types
 var (
-	Config = make(map[string]string)
+	Config = make(map[string]interface{})
 )
 
 const (
@@ -20,7 +19,6 @@ const (
 	LOGFILE            string = "LogFile"
 	REPORTFILE         string = "ReportFile"
 	FORCE_REPORT       string = "ForceReporting"
-	TRUE               string = "TRUE"
 	ALL_LOCATIONS      string = "AllLocations"
 
 	CapsFile      string = "caps.json"

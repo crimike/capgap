@@ -23,10 +23,10 @@ type AdGraphCache struct {
 var cache AdGraphCache
 
 func (c *AzureClient) InitializeAzureADGraphClient() {
-	c.AccessToken = settings.Config[settings.ACCESSTOKEN]
+	c.AccessToken = settings.Config[settings.ACCESSTOKEN].(string)
 	c.ApiVersion = "1.61-internal"
 	c.MainUrl = "https://graph.windows.net/"
-	c.Tenant = settings.Config[settings.TENANT]
+	c.Tenant = settings.Config[settings.TENANT].(string)
 	c.HttpClient = &http.Client{}
 
 	cache.GroupMembers = make(map[string][]string)
