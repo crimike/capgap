@@ -104,10 +104,11 @@ In no particular order:
 * Find gaps per Conditional Access Policy
 * Parse DeviceFilter
 * Take into account user/signin risk
-* recursive roles and groups
 * Report for dynamic groups included/excluded - to check if they contain user-editable properties in the filters
+      * Grep each dynamic groups filter for user-editable properties
 * Checks for well-known apps
 * Report for PIM
+      * Pim authentication context -> report excluded stuff
 
 ## Acknowledgements/inspirations
 

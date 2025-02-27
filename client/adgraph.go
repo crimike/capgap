@@ -218,7 +218,6 @@ func (c *AzureClient) GetApplicationsAdGraph() ([]adgraph.Application, error) {
 	return response, nil
 }
 
-// TODO: deal with recursive groups
 func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, []string, error) {
 
 	var (
@@ -272,7 +271,7 @@ func (c *AzureClient) GetGroupAndMembersAdGraph(groupId string) (adgraph.Group, 
 		return group, val, nil
 	}
 
-	apiUrl = c.MainUrl + c.Tenant + "/groups/" + groupId + "/members?$top=999&api-version=" + c.ApiVersion
+	apiUrl = c.MainUrl + c.Tenant + "/groups/" + groupId + "/transitiveMembers?$top=999&api-version=" + c.ApiVersion
 
 	for apiUrl != "" {
 
